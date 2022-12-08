@@ -2,9 +2,9 @@ package uk.co.softcreative.datanyltics.eventdriven
 
 import org.apache.log4j.Logger
 import org.apache.spark.sql.SparkSession
-//import org.apache.spark.sql.functions.expr
+import org.apache.spark.sql.types._
 
-object KafkaStreamOne extends  Serializable {
+object KafkaStreamOne extends Serializable {
 
   @transient lazy val logger: Logger = Logger.getLogger(getClass.getName)
 
@@ -17,14 +17,49 @@ object KafkaStreamOne extends  Serializable {
       .config("spark.sql.shuffle.partitions", "3")
       .getOrCreate()
 
-
+//invoice data schema
+    val schema = StructType(List(
+      StructField("InvoiceNumber", StringType),
+      StructField("CreatedTime", LongType),
+      StructField("StoreID", StringType),
+      StructField("PosID", StringType),
+      StructField("CashierID", StringType),
+      StructField("CustomerType", StringType),
+      StructField("CustomerCardNo", StringType),
+      StructField("TotalAmount", DoubleType),
+      StructField("NumberOfItems", IntegerType),
+      StructField("PaymentMethod", StringType),
+      StructField("CGST", DoubleType),
+      StructField("SGST", DoubleType),
+      StructField("CESS", DoubleType),
+      StructField("DeliveryType", StringType),
+      StructField("DeliveryAddress", StructType(List(
+        StructField("AddressLine", StringType),
+        StructField("City", StringType),
+        StructField("State", StringType),
+        StructField("PinCode", StringType),
+        StructField("ContactNumber", StringType)
+      ))),
+      StructField("InvoiceLineItems", ArrayType(StructType(List(
+        StructField("ItemCode", StringType),
+        StructField("ItemDescription", StringType),
+        StructField("ItemPrice", DoubleType),
+        StructField("ItemQty", IntegerType),
+        StructField("TotalValue", DoubleType)
+      )))),
+    ))
 
     logger.info("\n\t#### Event-driven : Message-driven application  ####\n")
 
+    val kafkaDF = spark.readStream
+      .format("kafka")
+      .option("kafka.bootstrap.servers", "localhost:29092")
+      .option("subscribe", "invoices")
+      .option("startingOffsets", "earliest")
+      .load()
 
-
+    kafkaDF.printSchema()
   }
-
 
 
 }
